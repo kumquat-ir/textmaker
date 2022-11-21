@@ -4,6 +4,7 @@
 import math
 import json
 import sys
+import os
 
 from copy import deepcopy
 
@@ -89,7 +90,8 @@ class Font:
                     # dummy canvas
                     canvas = ImageDraw.Draw(Image.new("RGBA", (1000, 1000), (0, 0, 0, 0)))
                 canvas.fontmode = self.fontmode
-                return canvas.multiline_textsize(text, self.resolved)
+                bbox = canvas.multiline_textbbox((0, 0), text, self.resolved)
+                return bbox[2] - bbox[0], bbox[3] - bbox[1]
             case "tmf":
                 pass
 
@@ -251,7 +253,7 @@ def eval_predicate(predicate: str, predicate_data: dict) -> bool:
         for ppart in ppart_or.split("&"):
             ptype, _, pval = ppart.partition(":")
             match ptype:
-                case "exists", "flag":
+                case "exists" | "flag":
                     if ptype not in predicate_data or pval not in predicate_data[ptype]:
                         presult = False
                 case "lines":
@@ -282,6 +284,11 @@ def parse_input(rinput):
     iargs = rinput[:] if isinstance(rinput, list) else rinput.split(" ")
     parse_queue = [iargs]
     ngenerated = 0
+
+    if (outdir / "textbox.png").exists():
+        os.remove(outdir / "textbox.png")
+    for image in (outdir / "parts").glob("textbox*.png"):
+        os.remove(image)
 
     while len(parse_queue) > 0:
 
@@ -353,17 +360,13 @@ def parse_input(rinput):
 
         for font in data["fonts"].keys():
             fonts[font] = Font(style_path / data["fonts"][font]["path"],
-                                       data["fonts"][font]["size"],
-                                       data["fonts"][font]["aa"])
-
-        print(data)
-        print(fonts)
-        print(parse_queue)
-        print(text)
+                               data["fonts"][font]["size"],
+                               data["fonts"][font]["aa"])
 
         # preload textbox data
         textboxes = {}
         repeater = None
+        torepeat = {}
         predicate_data["lines"] = {}
 
         for textbox in data["textboxes"].keys():
@@ -379,19 +382,24 @@ def parse_input(rinput):
                     if repeater is not None:
                         raise ValueError("duplicate repeating textboxes: " + repeater + ", " + textbox)
                     repeater = textbox
-                    textboxes[textbox]["text"] = []
-                    textboxes[textbox]["size"] = []
+                    torepeat["text"] = []
+                    torepeat["size"] = []
                     start = 0
 
                     while start >= 0:
-                        end = find_nth(wrapped_text, "\n", tbsize[1] * (len(textboxes[textbox]["text"]) + 1))
+                        end = find_nth(wrapped_text, "\n", tbsize[1] * (len(torepeat["text"]) + 1))
                         if end < 0:
                             break
-                        textboxes[textbox]["text"].append(wrapped_text[start:end])
-                        textboxes[textbox]["size"].append(tbfont.textsize(wrapped_text[start:end]))
-                        start = find_nth(wrapped_text, "\n", tbsize[1] * (len(textboxes[textbox]["text"]))) + 1
-                    textboxes[textbox]["text"].append(wrapped_text[start:])
-                    textboxes[textbox]["size"].append(tbfont.textsize(wrapped_text[start:]))
+                        torepeat["text"].append(wrapped_text[start:end])
+                        torepeat["size"].append(tbfont.textsize(wrapped_text[start:end]))
+                        start = find_nth(wrapped_text, "\n", tbsize[1] * (len(torepeat["text"]))) + 1
+                    torepeat["text"].append(wrapped_text[start:])
+                    torepeat["size"].append(tbfont.textsize(wrapped_text[start:]))
+
+                    textboxes[textbox]["text"] = torepeat["text"][0]
+                    textboxes[textbox]["size"] = torepeat["size"][0]
+                    del torepeat["text"][0]
+                    del torepeat["size"][0]
 
                 else:
                     bpoint = find_nth(wrapped_text, "\n", tbsize[1])
@@ -406,52 +414,64 @@ def parse_input(rinput):
 
             textboxes[textbox]["pos"] = data["textboxes"][textbox]["pos"]
 
-        data = merge_data(style_data, predicate_data)
-        print(data)
-        print(fonts)
-        print(textboxes)
+        while repeater is None or len(torepeat["text"]) > 0:
+            print(predicate_data)
+            data = merge_data(style_data, predicate_data)
 
-        # resolve images
-        images = {}
+            # resolve images
+            images = {}
 
-        for image in data["images"].keys():
-            if "textbox" in data["images"][image]:
-                # TODO expand
-                pass
-            elif "key" in data["images"][image]:
-                images[image] = Image.open(style_path / keys[data["images"][image]["key"]])
-            else:
-                images[image] = Image.open(style_path / data["images"][image]["path"])
+            for image in data["images"].keys():
+                if "textbox" in data["images"][image]:
+                    # TODO expand
+                    pass
+                elif "key" in data["images"][image]:
+                    images[image] = Image.open(style_path / keys[data["images"][image]["key"]])
+                else:
+                    images[image] = Image.open(style_path / data["images"][image]["path"])
 
-        # paste everything together
-        composite = None
-        if "basesize" in data["images"]:
-            composite = Image.new("RGBA", data["images"]["basesize"], (0, 0, 0, 0))
-        for image in images:
-            if composite is None:
-                composite = images[image].copy()
-                continue
-            composite = paste_alpha(composite, images[image], data["images"][image]["pos"])
+            # paste everything together
+            composite = None
+            if "basesize" in data["images"]:
+                composite = Image.new("RGBA", data["images"]["basesize"], (0, 0, 0, 0))
+            for image in images:
+                if composite is None:
+                    composite = images[image].copy()
+                    continue
+                composite = paste_alpha(composite, images[image], data["images"][image]["pos"])
 
-        canvas = ImageDraw.Draw(composite)
-        for textbox in textboxes:
-            text = textboxes[textbox]["text"]
+            canvas = ImageDraw.Draw(composite)
+            for textbox in textboxes:
+                text = textboxes[textbox]["text"]
 
-            fill = tuple(data["textboxes"][textbox]["color"]) if "color" in data["textboxes"][textbox] else None
-            anchor = data["textboxes"][textbox]["anchor"] if "anchor" in data["textboxes"][textbox] else None
-            spacing = data["textboxes"][textbox]["spacing"] if "spacing" in data["textboxes"][textbox] else 4
-            align = data["textboxes"][textbox]["align"] if "align" in data["textboxes"][textbox] else "left"
+                fill = tuple(data["textboxes"][textbox]["color"]) if "color" in data["textboxes"][textbox] else None
+                anchor = data["textboxes"][textbox]["anchor"] if "anchor" in data["textboxes"][textbox] else None
+                spacing = data["textboxes"][textbox]["spacing"] if "spacing" in data["textboxes"][textbox] else 4
+                align = data["textboxes"][textbox]["align"] if "align" in data["textboxes"][textbox] else "left"
 
-            textboxes[textbox]["font"].rendertext(canvas,
-                                                  data["textboxes"][textbox]["pos"],
-                                                  text,
-                                                  fill,
-                                                  anchor,
-                                                  spacing,
-                                                  align)
+                textboxes[textbox]["font"].rendertext(canvas,
+                                                      data["textboxes"][textbox]["pos"],
+                                                      text,
+                                                      fill,
+                                                      anchor,
+                                                      spacing,
+                                                      align)
 
-        composite.save(outdir / "parts" / ("textbox" + str(ngenerated) + ".png"))
-        ngenerated += 1
+            composite.save(outdir / "parts" / ("textbox" + str(ngenerated) + ".png"))
+            ngenerated += 1
+
+            if repeater is None:
+                break
+
+            # repeat if necessary
+            textboxes[repeater]["text"] = torepeat["text"][0]
+            textboxes[repeater]["size"] = torepeat["size"][0]
+            del torepeat["text"][0]
+            del torepeat["size"][0]
+            predicate_data["lines"][repeater] = textboxes[repeater]["text"].count("\n") + 1
+
+            if len(torepeat["text"]) <= 0:
+                repeater = None
 
         del parse_queue[0]
 
