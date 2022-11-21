@@ -1,0 +1,44 @@
+{
+  "syntax": "key:face rtext:main",
+  "predicates": {
+    "default": {
+      "fonts": {
+        "default": {
+          "path": "TerminusTTF-Bold.ttf",
+          "size": 20,
+          "aa": false
+        }
+      },
+      "images": {
+        "frame": {
+          "path": "frame.png",
+          "pos": [0, 0]
+        }
+      },
+      "textboxes": {
+        "main": {
+          "text": "main",
+          "font": "default",
+          "pos": [20, 17],
+          "size": [564, 4],
+          "spacing": 3,
+          "overflow": "repeat"
+        }
+      }
+    },
+    "exists:key:face": {
+      "images": {
+        "face": {
+          "key": "face",
+          "pos": [496, 16],
+          "size": [96, 96]
+        }
+      },
+      "textboxes": {
+        "main": {
+          "size": [460, 4]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# these folders will contain lots of images ripped from games, so exclude everything
+*/*
+
+# except these, these are original
+!*/map.json
+!*/style.json
