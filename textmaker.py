@@ -180,12 +180,12 @@ def merge_dicts(a: dict, b: dict) -> dict:
     return result
 
 
-def create_expand(base_imagepath: Path, image_data: dict) -> Image.Image:
+def create_expand(base_imagepath: Path, size: (int, int), divides: (int, int, int, int)) -> Image.Image:
     base_image = Image.open(base_imagepath)
     # target width and height
-    w, h = image_data["size"]
+    w, h = size
     # division lines on base image
-    dx1, dx2, dy1, dy2 = image_data["divide"]
+    dx1, dx2, dy1, dy2 = divides
     # max x and y for base image
     mx, my = base_image.size
     # right section width, bottom section height
@@ -234,7 +234,7 @@ def create_expand(base_imagepath: Path, image_data: dict) -> Image.Image:
 
     output = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     for section in section_locations:
-        output.paste(base_image.resize(section_sizes[section], Image.NEAREST, section_bounds[section]),
+        output.paste(base_image.resize(section_sizes[section], Image.Resampling.NEAREST, section_bounds[section]),
                      section_locations[section])
 
     return output
@@ -415,20 +415,35 @@ def parse_input(rinput):
             textboxes[textbox]["pos"] = data["textboxes"][textbox]["pos"]
 
         while repeater is None or len(torepeat["text"]) > 0:
-            print(predicate_data)
             data = merge_data(style_data, predicate_data)
 
             # resolve images
             images = {}
 
             for image in data["images"].keys():
-                if "textbox" in data["images"][image]:
-                    # TODO expand
-                    pass
-                elif "key" in data["images"][image]:
-                    images[image] = Image.open(style_path / keys[data["images"][image]["key"]])
+                if not isinstance(data["images"][image], dict):
+                    continue
+                if "key" in data["images"][image]:
+                    imagepath = style_path / keys[data["images"][image]["key"]]
                 else:
-                    images[image] = Image.open(style_path / data["images"][image]["path"])
+                    imagepath = style_path / data["images"][image]["path"]
+                if "divide" in data["images"][image]:
+                    if "textbox" in data["images"][image]:
+                        imagesize = data["images"][image]["size"]
+                        if "x" in data["images"][image]["bind_axes"]:
+                            imagesize[0] = textboxes[data["images"][image]["textbox"]]["size"][0] + \
+                                           data["images"][image]["sizemod"][0]
+                        if "y" in data["images"][image]["bind_axes"]:
+                            imagesize[1] = textboxes[data["images"][image]["textbox"]]["size"][1] + \
+                                           data["images"][image]["sizemod"][1]
+                        images[image] = create_expand(imagepath, imagesize, data["images"][image]["divide"])
+                    else:
+                        images[image] = create_expand(
+                            imagepath, data["images"][image]["size"], data["images"][image]["divide"]
+                        )
+                else:
+                    images[image] = Image.open(imagepath)
+                    # TODO scale images
 
             # paste everything together
             composite = None

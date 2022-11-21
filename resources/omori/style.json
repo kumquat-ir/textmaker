@@ -1,0 +1,181 @@
+{
+  "syntax": "text:name key:face rtext:main",
+  "predicates": {
+    "default": {
+      "fonts": {
+        "default": {
+          "path": "fonts/OMORI_GAME2.ttf",
+          "size": 28,
+          "aa": true
+        },
+        "alt": {
+          "path": "fonts/OMORI_GAME.ttf",
+          "size": 28,
+          "aa": true
+        },
+        "japanese": {
+          "path": "fonts/HuiFontP29.ttf",
+          "size": 28,
+          "aa": true
+        },
+        "korean": {
+          "path": "fonts/YoonDesignWebDotum_KRfont.ttf",
+          "size": 28,
+          "aa": true
+        },
+        "chinese": {
+          "path": "fonts/851tegaki_zatsu_normal_0883.ttf",
+          "size": 28,
+          "aa": true
+        },
+        "undertale": {
+          "path": "fonts/DTM-Mono.otf",
+          "size": 28,
+          "aa": true
+        },
+        "emoji": {
+          "path": "fonts/TwitterColorEmoji-SVGinOT.ttf",
+          "size": 28,
+          "aa": true
+        }
+      },
+      "images": {
+        "frame": {
+          "path": "frame.png",
+          "pos": [0, 0],
+          "size": [608, 112],
+          "divide": [5, 6, 5, 6]
+        }
+      },
+      "textboxes": {
+        "main": {
+          "text": "main",
+          "font": "default",
+          "pos": [17, 11],
+          "size": [564, 3],
+          "spacing": 6,
+          "overflow": "repeat"
+        }
+      }
+    },
+    "exists:text:name": {
+      "images": {
+        "basesize": [608, 160],
+        "frame": {
+          "pos": [0, 48]
+        },
+        "frame_name": {
+          "textbox": "name",
+          "bind_axes": "x",
+          "path": "frame.png",
+          "pos": [0, 0],
+          "size": [100, 44],
+          "sizemod": [24, 0],
+          "divide": [5, 6, 5, 6]
+        }
+      },
+      "textboxes": {
+        "main": {
+          "pos": [17, 59]
+        },
+        "name": {
+          "text": "name",
+          "font": "default",
+          "pos": [12, 5],
+          "size": [564, 1]
+        }
+      }
+    },
+    "exists:key:face": {
+      "images": {
+        "basesize": [608, 230],
+        "frame": {
+          "pos": [0, 118]
+        },
+        "face_bg": {
+          "path": "black.png",
+          "pos": [494, 0],
+          "size": [114, 114],
+          "divide": [1, 2, 1, 2]
+        },
+        "face": {
+          "key": "face",
+          "pos": [499, 5],
+          "size": [106, 106]
+        },
+        "face_frame": {
+          "path": "frame_transparent.png",
+          "pos": [494, 0],
+          "size": [114, 114],
+          "divide": [5, 6, 5, 6]
+        }
+      },
+      "textboxes": {
+        "main": {
+          "pos": [17, 129]
+        }
+      }
+    },
+    "exists:key:face&exists:text:name": {
+      "images": {
+        "frame_name": {
+          "pos": [0, 70]
+        }
+      },
+      "textboxes": {
+        "name": {
+          "pos": [12, 75]
+        }
+      }
+    },
+    "flag:escape": {
+      "images": {
+        "face": {
+          "pos": [298, 4]
+        }
+      }
+    },
+    "flag:alt|flag:other|flag:scared": {
+      "textboxes": {
+        "main": {
+          "font": "alt"
+        }
+      }
+    },
+    "flag:jp|flag:japanese": {
+      "textboxes": {
+        "main": {
+          "font": "japanese"
+        }
+      }
+    },
+    "flag:kr|flag:korean": {
+      "textboxes": {
+        "main": {
+          "font": "korean"
+        }
+      }
+    },
+    "flag:ch|flag:cn|flag:chinese": {
+      "textboxes": {
+        "main": {
+          "font": "chinese"
+        }
+      }
+    },
+    "flag:ut|flag:dr|flag:undertale|flag:deltarune": {
+      "textboxes": {
+        "main": {
+          "font": "undertale"
+        }
+      }
+    },
+    "flag:emoji": {
+      "textboxes": {
+        "main": {
+          "font": "emoji"
+        }
+      }
+    }
+  }
+}
